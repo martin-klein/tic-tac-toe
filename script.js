@@ -30,35 +30,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    cells.forEach((cell, index) => {
-        cell.addEventListener('click', () => {
-            if (currentPlayer === 'X' && gameState[index] === '') {
-                makeMove(cell, index);
-                if (!checkWinner() && !checkTie()) {
-                    aiMove();
-                }
-            }
-        });
-    });
-
     const makeMove = (cell, index) => {
         gameState[index] = currentPlayer;
         cell.innerText = currentPlayer;
         cell.classList.add('used');
-        if (checkWinner() || checkTie()) {
-            updateGameStatus();
+
+        if (checkWinner(currentPlayer)) {
+            if (currentPlayer === 'X') {
+                playerWins++;
+            } else {
+                aiWins++;
+            }
+            updateWinCount();
+            playerIndicator.innerText = `${currentPlayer} wins!`;
+            setTimeout(initializeGame, 2000);
+        } else if (checkTie()) {
+            playerIndicator.innerText = 'Game is a tie!';
+            setTimeout(initializeGame, 2000);
+        } else {
+            if (currentPlayer === 'X') {
+                aiMove();
+            }
         }
     };
 
     const aiMove = () => {
-        currentPlayer = 'O';
         let bestMove = findBestMove(gameState);
         gameState[bestMove] = 'O';
         cells[bestMove].innerText = 'O';
         cells[bestMove].classList.add('used');
 
-        if (checkWinner() || checkTie()) {
-            updateGameStatus();
+        if (checkWinner('O')) {
+            aiWins++;
+            updateWinCount();
+            playerIndicator.innerText = 'AI wins!';
+            setTimeout(initializeGame, 2000);
+            return;
+        }
+
+        if (checkTie()) {
+            playerIndicator.innerText = 'Game is a tie!';
+            setTimeout(initializeGame, 2000);
             return;
         }
 
@@ -131,10 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return board.some(cell => cell === '');
     };
 
-    const checkWinner = () => {
+    const checkWinner = (player) => {
         return winningConditions.some(combination => {
             return combination.every(index => {
-                return gameState[index] === currentPlayer;
+                return gameState[index] === player;
             });
         });
     };
@@ -143,25 +155,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return gameState.every(cell => cell !== '');
     };
 
-    const updateGameStatus = () => {
-        if (checkWinner()) {
-            playerIndicator.innerText = `${currentPlayer === 'X' ? 'Player' : 'AI'} wins!`;
-            if (currentPlayer === 'X') {
-                playerWins++;
-            } else {
-                aiWins++;
-            }
-            updateWinCount();
-        } else if (checkTie()) {
-            playerIndicator.innerText = `Game is a tie!`;
-        }
-        initializeGame();
-    };
-
     const updateWinCount = () => {
         playerWinCount.innerText = `Player Wins: ${playerWins}`;
         aiWinCount.innerText = `AI Wins: ${aiWins}`;
     };
+
+    cells.forEach((cell, index) => {
+        cell.addEventListener('click', () => {
+            if (currentPlayer === 'X' && gameState[index] === '') {
+                makeMove(cell, index);
+            }
+        });
+    });
 
     resetButton.addEventListener('click', initializeGame);
 
