@@ -43,22 +43,78 @@ document.addEventListener('DOMContentLoaded', () => {
         aiMove();
     };
 
-    const aiMove = () => {
-        currentPlayer = 'O'; // Set currentPlayer to AI
-        let moveIndex = findBestMove();
-        if (moveIndex !== -1) {
-            gameState[moveIndex] = 'O';
-            cells[moveIndex].innerText = 'O';
-            cells[moveIndex].classList.add('used');
+    function minimax(newBoard, player) {
+        const availSpots = newBoard.filter(s => s != "O" && s != "X");
+    
+        if (checkWin(newBoard, 'X')) {
+            return {score: -10};
+        } else if (checkWin(newBoard, 'O')) {
+            return {score: 10};
+        } else if (availSpots.length === 0) {
+            return {score: 0};
         }
     
-        // Check for win or tie after AI move
+        let moves = [];
+        for (let i = 0; i < availSpots.length; i++) {
+            let move = {};
+            move.index = newBoard[availSpots[i]];
+            newBoard[availSpots[i]] = player;
+    
+            if (player == 'O') {
+                let result = minimax(newBoard, 'X');
+                move.score = result.score;
+            } else {
+                let result = minimax(newBoard, 'O');
+                move.score = result.score;
+            }
+    
+            newBoard[availSpots[i]] = move.index;
+            moves.push(move);
+        }
+    
+        let bestMove;
+        if (player === 'O') {
+            let bestScore = -10000;
+            for (let i = 0; i < moves.length; i++) {
+                if (moves[i].score > bestScore) {
+                    bestScore = moves[i].score;
+                    bestMove = i;
+                }
+            }
+        } else {
+            let bestScore = 10000;
+            for (let i = 0; i < moves.length; i++) {
+                if (moves[i].score < bestScore) {
+                    bestScore = moves[i].score;
+                    bestMove = i;
+                }
+            }
+        }
+    
+        return moves[bestMove];
+    }
+    
+    function checkWin(board, player) {
+        return winningConditions.some(combination => {
+            return combination.every(index => {
+                return board[index] === player;
+            });
+        });
+    }
+
+    const aiMove = () => {
+        currentPlayer = 'O';
+        let bestMove = minimax(gameState, currentPlayer).index;
+        gameState[bestMove] = 'O';
+        cells[bestMove].innerText = 'O';
+        cells[bestMove].classList.add('used');
+    
         if (checkWinner() || checkTie()) {
             updateGameStatus();
             return;
         }
     
-        currentPlayer = 'X'; // Switch back to the player
+        currentPlayer = 'X';
         playerIndicator.innerText = `Player's turn`;
     };
 
