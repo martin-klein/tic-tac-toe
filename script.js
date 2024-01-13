@@ -36,18 +36,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const aiMove = () => {
+        currentPlayer = 'O'; // Set currentPlayer to AI
         let moveIndex = findBestMove();
         if (moveIndex !== -1) {
             gameState[moveIndex] = 'O';
             cells[moveIndex].innerText = 'O';
             cells[moveIndex].classList.add('used');
         }
-
+    
+        // Check for win or tie after AI move
         if (checkWinner() || checkTie()) {
             updateGameStatus();
             return;
         }
-
+    
         currentPlayer = 'X'; // Switch back to the player
         playerIndicator.innerText = `Player's turn`;
     };
