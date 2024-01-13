@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     const cells = document.querySelectorAll('.cell');
-    let currentPlayer = 'X'; // Player is always 'X' and AI is 'O'
+    let currentPlayer;
     let gameState = ['', '', '', '', '', '', '', '', ''];
+    let playerWins = 0;
+    let aiWins = 0;
     const winningConditions = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
         [0, 3, 6], [1, 4, 7], [2, 5, 8],
@@ -11,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const playerIndicator = document.getElementById('player-indicator');
     const resetButton = document.getElementById('reset-button');
+    const playerWinCount = document.getElementById('player-win-count');
+    const aiWinCount = document.getElementById('ai-win-count');
 
     const initializeGame = () => {
         gameState.fill('');
@@ -18,8 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.innerText = '';
             cell.classList.remove('used');
         });
-        currentPlayer = 'X';
-        playerIndicator.innerText = `Player's turn`;
+        currentPlayer = Math.random() < 0.5 ? 'X' : 'O';
+        playerIndicator.innerText = currentPlayer === 'X' ? `Player's turn` : `AI's turn`;
+
+        if (currentPlayer === 'O') {
+            aiMove();
+        }
     };
 
     const handleCellClick = (clickedCell, clickedCellIndex) => {
@@ -93,9 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateGameStatus = () => {
         if (checkWinner()) {
             playerIndicator.innerText = `${currentPlayer === 'X' ? 'Player' : 'AI'} wins!`;
+            if (currentPlayer === 'X') {
+                playerWins++;
+            } else {
+                aiWins++;
+            }
+            updateWinCount();
         } else if (checkTie()) {
             playerIndicator.innerText = `Game is a tie!`;
         }
+    };
+
+    const updateWinCount = () => {
+        playerWinCount.innerText = `Player Wins: ${playerWins}`;
+        aiWinCount.innerText = `AI Wins: ${aiWins}`;
     };
 
     cells.forEach((cell, index) => {
