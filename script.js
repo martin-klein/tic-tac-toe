@@ -30,116 +30,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const handleCellClick = (clickedCell, clickedCellIndex) => {
-        gameState[clickedCellIndex] = currentPlayer;
-        clickedCell.innerText = currentPlayer;
-        clickedCell.classList.add('used');
+    cells.forEach((cell, index) => {
+        cell.addEventListener('click', () => {
+            if (currentPlayer === 'X' && gameState[index] === '') {
+                makeMove(cell, index);
+                if (!checkWinner() && !checkTie()) {
+                    aiMove();
+                }
+            }
+        });
+    });
 
+    const makeMove = (cell, index) => {
+        gameState[index] = currentPlayer;
+        cell.innerText = currentPlayer;
+        cell.classList.add('used');
         if (checkWinner() || checkTie()) {
             updateGameStatus();
-            return;
         }
-
-        aiMove();
     };
-
-    function minimax(newBoard, player) {
-        const availSpots = newBoard.filter(s => s != "O" && s != "X");
-    
-        if (checkWin(newBoard, 'X')) {
-            return {score: -10};
-        } else if (checkWin(newBoard, 'O')) {
-            return {score: 10};
-        } else if (availSpots.length === 0) {
-            return {score: 0};
-        }
-    
-        let moves = [];
-        for (let i = 0; i < availSpots.length; i++) {
-            let move = {};
-            move.index = newBoard[availSpots[i]];
-            newBoard[availSpots[i]] = player;
-    
-            if (player == 'O') {
-                let result = minimax(newBoard, 'X');
-                move.score = result.score;
-            } else {
-                let result = minimax(newBoard, 'O');
-                move.score = result.score;
-            }
-    
-            newBoard[availSpots[i]] = move.index;
-            moves.push(move);
-        }
-    
-        let bestMove;
-        if (player === 'O') {
-            let bestScore = -10000;
-            for (let i = 0; i < moves.length; i++) {
-                if (moves[i].score > bestScore) {
-                    bestScore = moves[i].score;
-                    bestMove = i;
-                }
-            }
-        } else {
-            let bestScore = 10000;
-            for (let i = 0; i < moves.length; i++) {
-                if (moves[i].score < bestScore) {
-                    bestScore = moves[i].score;
-                    bestMove = i;
-                }
-            }
-        }
-    
-        return moves[bestMove];
-    }
-    
-    function checkWin(board, player) {
-        return winningConditions.some(combination => {
-            return combination.every(index => {
-                return board[index] === player;
-            });
-        });
-    }
 
     const aiMove = () => {
         currentPlayer = 'O';
-        let bestMove = minimax(gameState, currentPlayer).index;
+        let bestMove = findBestMove(gameState);
         gameState[bestMove] = 'O';
         cells[bestMove].innerText = 'O';
         cells[bestMove].classList.add('used');
-    
+
         if (checkWinner() || checkTie()) {
             updateGameStatus();
             return;
         }
-    
+
         currentPlayer = 'X';
         playerIndicator.innerText = `Player's turn`;
     };
 
-    const findBestMove = () => {
-        // AI tries to win or block player's win
+    const findBestMove = (board) => {
+        let bestVal = -1000;
+        let bestMove = -1;
+
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                board[i] = 'O';
+                let moveVal = minimax(board, 0, false);
+                board[i] = '';
+
+                if (moveVal > bestVal) {
+                    bestMove = i;
+                    bestVal = moveVal;
+                }
+            }
+        }
+        return bestMove;
+    };
+
+    const minimax = (newBoard, depth, isMaximizing) => {
+        let score = evaluateBoard(newBoard);
+
+        if (score === 10 || score === -10) return score;
+        if (isMovesLeft(newBoard) === false) return 0;
+
+        if (isMaximizing) {
+            let best = -1000;
+            for (let i = 0; i < newBoard.length; i++) {
+                if (newBoard[i] === '') {
+                    newBoard[i] = 'O';
+                    best = Math.max(best, minimax(newBoard, depth + 1, !isMaximizing));
+                    newBoard[i] = '';
+                }
+            }
+            return best;
+        } else {
+            let best = 1000;
+            for (let i = 0; i < newBoard.length; i++) {
+                if (newBoard[i] === '') {
+                    newBoard[i] = 'X';
+                    best = Math.min(best, minimax(newBoard, depth + 1, !isMaximizing));
+                    newBoard[i] = '';
+                }
+            }
+            return best;
+        }
+    };
+
+    const evaluateBoard = (board) => {
         for (let condition of winningConditions) {
-            const [a, b, c] = condition;
-            if (gameState[a] === gameState[b] && gameState[a] !== '' && gameState[c] === '') {
-                return c;
-            }
-            if (gameState[a] === gameState[c] && gameState[a] !== '' && gameState[b] === '') {
-                return b;
-            }
-            if (gameState[b] === gameState[c] && gameState[b] !== '' && gameState[a] === '') {
-                return a;
+            if (board[condition[0]] === board[condition[1]] && board[condition[1]] === board[condition[2]]) {
+                if (board[condition[0]] === 'O') {
+                    return 10;
+                } else if (board[condition[0]] === 'X') {
+                    return -10;
+                }
             }
         }
+        return 0;
+    };
 
-        // If no win/block move, pick random empty cell
-        const emptyCells = gameState.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
-        if (emptyCells.length > 0) {
-            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        }
-
-        return -1; // No available moves
+    const isMovesLeft = (board) => {
+        return board.some(cell => cell === '');
     };
 
     const checkWinner = () => {
@@ -166,20 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (checkTie()) {
             playerIndicator.innerText = `Game is a tie!`;
         }
+        initializeGame();
     };
 
     const updateWinCount = () => {
         playerWinCount.innerText = `Player Wins: ${playerWins}`;
         aiWinCount.innerText = `AI Wins: ${aiWins}`;
     };
-
-    cells.forEach((cell, index) => {
-        cell.addEventListener('click', () => {
-            if (currentPlayer === 'X' && gameState[index] === '') {
-                handleCellClick(cell, index);
-            }
-        });
-    });
 
     resetButton.addEventListener('click', initializeGame);
 
